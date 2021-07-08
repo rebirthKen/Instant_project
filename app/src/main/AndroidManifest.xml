@@ -1,13 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.instant_project">
-
+    xmlns:dist="http://schemas.android.com/apk/distribution"
+    package="com.example.instant_sample_sushi"
+    android:targetSandboxVersion="2">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <dist:module dist:instant="true"/>
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Instant_project" />
+        android:theme="@style/Theme.MVI_Architecture">
+        <activity
+            android:name="com.example.instant_project.main.MainActivity"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="http"/>
+                <data android:scheme="https"/>
+                <data android:host="batch.sample.com"/>
+            </intent-filter>
+
+        </activity>
+    </application>
 
 </manifest>
