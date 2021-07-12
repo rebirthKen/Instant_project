@@ -25,7 +25,6 @@
             android:layout_height="wrap_content"
             app:layout_constraintTop_toBottomOf="@id/imageView"
             android:textColor="@color/black"
-            android:textSize="20sp"
             android:textAlignment="center"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
