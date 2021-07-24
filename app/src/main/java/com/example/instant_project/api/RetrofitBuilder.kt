@@ -24,9 +24,8 @@ object RetrofitBuilder {
 
    private val retrofitBuilder:  Retrofit.Builder by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addCallAdapterFactory(LiveDataCallAdapterFactory())
             .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
+            .baseUrl(BASE_URL)
             .client(httpClient)
     }
 

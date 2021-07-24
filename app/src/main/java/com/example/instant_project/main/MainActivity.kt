@@ -9,6 +9,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.isInvisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.instant_project.repository.Repository
@@ -102,17 +103,17 @@ class MainActivity :  AppCompatActivity() {
         }
 
         viewModel.inProgress.observe(this) {
-//            viewBinding.progressBar.isInvisible = !it
+            viewBinding.progressBar.isInvisible = !it
         }
 
-//        viewModel.readyToCheckout.observe(this) { isReady ->
-//            if (isReady) {
-//                viewBinding.completeCheckoutButton.isEnabled = true
-//                configureCustomCheckout()
-//            } else {
-//                disableViews()
-//            }
-//        }
+        viewModel.readyToCheckout.observe(this) { isReady ->
+            if (isReady) {
+                viewBinding.completeCheckoutButton.isEnabled = true
+                configureCustomCheckout()
+            } else {
+                disableViews()
+            }
+        }
 
         disableViews()
     }

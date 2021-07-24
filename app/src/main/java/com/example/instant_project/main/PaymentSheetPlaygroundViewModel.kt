@@ -1,10 +1,8 @@
 package com.example.instant_project.main
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import android.util.Log
+import androidx.lifecycle.*
 import com.example.instant_project.api.RetrofitBuilder
 import com.example.instant_project.repository.DefaultRepository
 import com.example.instant_project.repository.Repository
@@ -23,9 +21,9 @@ internal class PaymentSheetPlaygroundViewModel(
 
 
 
-//    val readyToCheckout: LiveData<Boolean> = clientSecret.map {
-//        it != null
-//    }
+    val readyToCheckout: LiveData<Boolean> = clientSecret.map {
+        it != null
+    }
 
     var checkoutMode: Repository.CheckoutMode? = null
     var temporaryCustomerId: String? = null
@@ -63,6 +61,7 @@ internal class PaymentSheetPlaygroundViewModel(
                 clientSecret.value = it.intentClientSecret
             },
             onFailure = {
+                Log.e("qqqq", it.message.toString());
                 status.postValue(
                     "Preparing checkout failed:\n${it.message}"
                 )
