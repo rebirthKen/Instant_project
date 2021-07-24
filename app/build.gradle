@@ -26,8 +26,11 @@ android {
         viewBinding = true
     }
     compileOptions {
-        sourceCompatibility 1.8
-        targetCompatibility 1.8
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
 }
 
@@ -39,42 +42,57 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.3.5'
-    implementation 'androidx.navigation:navigation-ui-ktx:2.3.1'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.3.5'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.4.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
+
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.3.1")
+
+
+
+    //kotlin serialization
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2"
+
+    //retrofit2 serialization converter
+    implementation "com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0"
+
+    //okhttp3 logging intercepor
+    implementation 'com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2'
 
     // -- Retrofit2
-    def retrofit2_version = "2.6.0"
+    def retrofit2_version = "2.9.0"
     implementation "com.squareup.retrofit2:retrofit:$retrofit2_version"
     implementation "com.squareup.retrofit2:converter-gson:$retrofit2_version"
 
     // -- Lifecycle Components (ViewModel, LiveData and ReactiveStreams)
-    def lifecycle_version = "2.2.0-alpha03"
-    implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"
-    kapt "androidx.lifecycle:lifecycle-compiler:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-extensions:2.2.0-alpha03"
+    //noinspection LifecycleAnnotationProcessorWithJava8
+    kapt "androidx.lifecycle:lifecycle-compiler:2.3.1"
 
     // -- Coroutines
-    def coroutines_version = "1.2.1"
+    def coroutines_version = '1.5.1-native-mt'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
 
     // RecyclerView
-    def recyclerview_version = "1.1.0-beta03"
+    def recyclerview_version = '1.2.1'
     implementation "androidx.recyclerview:recyclerview:$recyclerview_version"
 
-    def material_version = "1.1.0-alpha09"
+    def material_version = '1.5.0-alpha01'
     implementation "com.google.android.material:material:$material_version"
 
     //glide
-    def glide_version = "4.9.0"
+    def glide_version = '4.12.0'
     implementation "com.github.bumptech.glide:glide:$glide_version"
     annotationProcessor "com.github.bumptech.glide:compiler:$glide_version"
 
     //instant app
     implementation "com.google.android.gms:play-services-instantapps:17.0.1"
 
-    //in-app purchase
-    implementation("com.android.billingclient:billing-ktx:4.0.0")
+    // Stripe Android SDK
+    implementation 'com.stripe:stripe-android:17.0.0'
 }

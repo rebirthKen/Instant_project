@@ -1,182 +1,206 @@
 package com.example.instant_project.main
 
 
+import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.android.billingclient.api.*
+import com.example.instant_project.repository.Repository
 import com.example.instant_sample_sushi.R
-import com.example.instant_project.util.DataState
+import com.example.instant_sample_sushi.databinding.ActivityMainBinding
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.model.PaymentOption
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity(), DataStateListener, PurchasesUpdatedListener {
-
-    companion object {
-        const val LICENCE = "type the licence here"
-        const val PRODUCTION_ID = "sub_batch_membership_01"
+class MainActivity :  AppCompatActivity() {
+    private val viewBinding by lazy {
+        ActivityMainBinding.inflate(layoutInflater)
     }
 
-    lateinit var viewModel: MainViewModel
+    private val viewModel: PaymentSheetPlaygroundViewModel by viewModels {
+        PaymentSheetPlaygroundViewModel.Factory(
+            application
+        )
+    }
 
-    private lateinit var billingClient: BillingClient
+    private val customer: Repository.CheckoutCustomer
+        get() = when (viewBinding.customerRadioGroup.checkedRadioButtonId) {
+            R.id.guest_customer_button -> Repository.CheckoutCustomer.Guest
+            R.id.new_customer_button -> {
+                viewModel.temporaryCustomerId?.let {
+                    Repository.CheckoutCustomer.WithId(it)
+                } ?: Repository.CheckoutCustomer.New
+            }
+            else -> Repository.CheckoutCustomer.Returning
+        }
 
+    private val googlePayConfig: PaymentSheet.GooglePayConfiguration?
+        get() = when (viewBinding.googlePayRadioGroup.checkedRadioButtonId) {
+            R.id.google_pay_on_button -> {
+                PaymentSheet.GooglePayConfiguration(
+                    environment = PaymentSheet.GooglePayConfiguration.Environment.Test,
+                    countryCode = "US"
+                )
+            }
+            else -> null
+        }
+
+    private val currency: Repository.CheckoutCurrency
+        get() = when (viewBinding.currencyRadioGroup.checkedRadioButtonId) {
+            R.id.currency_usd_button -> Repository.CheckoutCurrency.USD
+            else -> Repository.CheckoutCurrency.EUR
+        }
+
+    private val mode: Repository.CheckoutMode
+        get() = when (viewBinding.modeRadioGroup.checkedRadioButtonId) {
+            R.id.mode_payment_button -> Repository.CheckoutMode.Payment
+            else -> Repository.CheckoutMode.Setup
+        }
+
+    private lateinit var paymentSheet: PaymentSheet
+    private lateinit var flowController: PaymentSheet.FlowController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(viewBinding.root)
 
-        billingClient = BillingClient.newBuilder(this)
-            .setListener(this)
-            .enablePendingPurchases()
-            .build()
+        paymentSheet = PaymentSheet(this, ::onPaymentSheetResult)
+        flowController = PaymentSheet.FlowController.create(
+            this,
+            ::onPaymentOption,
+            ::onPaymentSheetResult
+        )
 
-        viewModel = ViewModelProvider(this).get(MainViewModel :: class.java)
-        showMainFragment()
-
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode ==  BillingClient.BillingResponseCode.OK) {
-                    Log.e("qqqq", "connected ")
-                    subscribe_text.text = subscribe_text.text.toString() + "\n connected!!"
-                } else {
-                    showToast("Something is wrong !!")
-                }
+        viewBinding.reloadButton.setOnClickListener {
+            lifecycleScope.launch {
+                viewModel.prepareCheckout(customer, currency, mode)
             }
-            override fun onBillingServiceDisconnected() {
-                showToast("Disconnected!!")
-            }
-        })
-
-        subscribe_button.setOnClickListener {
-            subscribe()
         }
+
+        viewBinding.completeCheckoutButton.setOnClickListener {
+            startCompleteCheckout()
+        }
+
+        viewBinding.customCheckoutButton.setOnClickListener {
+            flowController.confirm()
+        }
+
+        viewBinding.paymentMethod.setOnClickListener {
+            flowController.presentPaymentOptions()
+        }
+
+        viewModel.status.observe(this) {
+            Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+        }
+
+        viewModel.inProgress.observe(this) {
+//            viewBinding.progressBar.isInvisible = !it
+        }
+
+//        viewModel.readyToCheckout.observe(this) { isReady ->
+//            if (isReady) {
+//                viewBinding.completeCheckoutButton.isEnabled = true
+//                configureCustomCheckout()
+//            } else {
+//                disableViews()
+//            }
+//        }
+
+        disableViews()
     }
 
-    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            subscribe_text.visibility = View.VISIBLE
-            subscribe_text.text = "You have successfully bought the production"
-        }
+    private fun disableViews() {
+        viewBinding.completeCheckoutButton.isEnabled = false
+        viewBinding.customCheckoutButton.isEnabled = false
+        viewBinding.paymentMethod.isClickable = false
     }
 
-    suspend fun initiatePurchase() {
-        val skuList = ArrayList<String>()
-        skuList.add(PRODUCTION_ID)
-        val params = SkuDetailsParams.newBuilder()
-        params.setSkusList(skuList).setType(BillingClient.SkuType.SUBS)
+    private fun startCompleteCheckout() {
+        val clientSecret = viewModel.clientSecret.value ?: return
 
-        // leverage querySkuDetails Kotlin extension function
-        val skuDetailsResult = withContext(Dispatchers.IO) {
-            billingClient.querySkuDetails(params.build())
-        }
-       when(skuDetailsResult.billingResult.responseCode) {
-           BillingClient.BillingResponseCode.OK -> {
-               Log.e("qqqq", "billingResult OK")
-               subscribe_text.text = subscribe_text.text.toString() + "\n billingResult OK"
-
-               val skuDetailsList = skuDetailsResult.skuDetailsList
-               if (!skuDetailsList.isNullOrEmpty()) {
-                   val flowParams =  BillingFlowParams
-                       .newBuilder()
-                       .setSkuDetails(skuDetailsList[0])
-                       .build()
-                   billingClient.launchBillingFlow(this, flowParams)
-               } else {
-                   Log.e("qqqq", "skuDetailsList  null or empty")
-
-               }
-
-           }
-           else -> {
-               Log.e("qqqq", "billingResult Failure")
-           }
-       }
-
-        // Process the result.
-    }
-
-    private fun initiatePurchaseTest() {
-        val skuList: MutableList<String> = ArrayList()
-        skuList.add(PRODUCTION_ID)
-        val params = SkuDetailsParams.newBuilder()
-        params.setSkusList(skuList).setType(BillingClient.SkuType.SUBS)
-        val billingResult = billingClient!!.isFeatureSupported(BillingClient.FeatureType.SUBSCRIPTIONS)
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-            billingClient!!.querySkuDetailsAsync(params.build()
-            ) { billingResult, skuDetailsList ->
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    if (skuDetailsList != null && skuDetailsList.size > 0) {
-                        val flowParams = BillingFlowParams.newBuilder()
-                            .setSkuDetails(skuDetailsList[0])
-                            .build()
-                        billingClient!!.launchBillingFlow(this@MainActivity, flowParams)
-                    } else {
-                        //try to add subscription item "sub_example" in google play console
-                        Log.e("qqqq", "Item not Found -> " +  billingResult.debugMessage)
-
-                        Toast.makeText(applicationContext, "Item not Found", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    Log.e("qqqq", "error -> " +  billingResult.debugMessage)
-                    Toast.makeText(applicationContext,
-                        " Error " + billingResult.debugMessage, Toast.LENGTH_SHORT).show()
-                }
-            }
+        if (viewModel.checkoutMode == Repository.CheckoutMode.Setup) {
+            paymentSheet.presentWithSetupIntent(
+                clientSecret,
+                makeConfiguration()
+            )
         } else {
-            Toast.makeText(applicationContext,
-                "Sorry Subscription not Supported. Please Update Play Store", Toast.LENGTH_SHORT).show()
+            paymentSheet.presentWithPaymentIntent(
+                clientSecret,
+                makeConfiguration()
+            )
         }
     }
 
-    override fun onDataStateChange(dataState: DataState<*>?) {
-        handleDataState(dataState)
-    }
+    private fun configureCustomCheckout() {
+        val clientSecret = viewModel.clientSecret.value ?: return
 
-    fun showMainFragment() {
-        val fragment = MainFragment()
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .commit()
-    }
-
-    private fun handleDataState(dataState: DataState<*>?) {
-        dataState?.let {
-            //handle loading on ui
-            showProgressBar(it.loading)
-
-            //handle message on ui
-            it.message?.let { event ->
-                event.getContentIfNotHandled()?.let {
-                    showToast(it)
-                }
-            }
-        }
-    }
-
-
-    private fun subscribe() {
-        if (billingClient.isReady) {
-            //todo init the purchase
-            Log.e("qqqq", "isReady")
-            subscribe_text.text =   subscribe_text.text.toString() + "\n billingClient isReady"
-            lifecycleScope.launchWhenStarted {
-                initiatePurchaseTest()
-            }
+        if (viewModel.checkoutMode == Repository.CheckoutMode.Setup) {
+            flowController.configureWithSetupIntent(
+                clientSecret,
+                makeConfiguration(),
+                ::onConfigured
+            )
         } else {
+            flowController.configureWithPaymentIntent(
+                clientSecret,
+                makeConfiguration(),
+                ::onConfigured
+            )
         }
     }
 
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    private fun makeConfiguration(): PaymentSheet.Configuration {
+        return PaymentSheet.Configuration(
+            merchantDisplayName = merchantName,
+            customer = viewModel.customerConfig.value,
+            googlePay = googlePayConfig
+        )
     }
 
-    private fun showProgressBar(isVisible: Boolean) {
-        progress_bar.visibility = if (isVisible) View.VISIBLE else View.GONE
+    private fun onConfigured(success: Boolean, error: Throwable?) {
+        if (success) {
+            viewBinding.paymentMethod.isClickable = true
+            onPaymentOption(flowController.getPaymentOption())
+        } else {
+            viewModel.status.value =
+                "Failed to configure PaymentSheetFlowController: ${error?.message}"
+        }
+    }
+
+    private fun onPaymentOption(paymentOption: PaymentOption?) {
+        if (paymentOption != null) {
+            viewBinding.paymentMethod.text = paymentOption.label
+            viewBinding.paymentMethod.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                paymentOption.drawableResourceId,
+                0,
+                0,
+                0
+            )
+            viewBinding.customCheckoutButton.isEnabled = true
+        } else {
+            viewBinding.paymentMethod.setText("select")
+            viewBinding.paymentMethod.setCompoundDrawables(null, null, null, null)
+            viewBinding.customCheckoutButton.isEnabled = false
+        }
+    }
+
+    private fun onPaymentSheetResult(paymentResult: PaymentSheetResult) {
+        if (paymentResult !is PaymentSheetResult.Canceled) {
+            disableViews()
+        }
+
+        viewModel.status.value = paymentResult.toString()
+    }
+
+    companion object {
+        private const val merchantName = "Example, Inc."
     }
 }
