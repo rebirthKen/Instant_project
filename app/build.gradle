@@ -9,7 +9,7 @@ apply plugin: 'kotlin-kapt'
 android {
     compileSdkVersion 30
     defaultConfig {
-        applicationId "com.instant_sample_sushi"
+        applicationId "com.instant_sample_sushi_chao_demo"
         minSdkVersion 21
         targetSdkVersion 30
         versionCode 2
