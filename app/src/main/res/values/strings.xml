@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
-    <string name="app_name">PaymentSheet Example</string>
+    <string name="app_name">Batch Test</string>
     <string name="paymentsheet">PaymentSheet</string>
     <string name="paymentsheet_custom">PaymentSheet Custom</string>
     <string name="playground">Playground</string>
