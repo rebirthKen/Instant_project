@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
     xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="2"
+    android:versionCode="3"
     package="com.example.instant_sample_sushi"
     android:targetSandboxVersion="2">
 
