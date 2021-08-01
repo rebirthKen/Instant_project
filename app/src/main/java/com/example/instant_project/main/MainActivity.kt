@@ -1,6 +1,8 @@
 package com.example.instant_project.main
 
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -35,7 +37,9 @@ class MainActivity :  AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
-
+        val action: String? = intent?.action
+        val data: Uri? = intent?.data
+        viewBinding.textView.text = data.toString()
         paymentSheet = PaymentSheet(this, ::onPaymentSheetResult)
 
 
